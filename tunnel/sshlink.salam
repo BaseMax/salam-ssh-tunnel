@@ -1,0 +1,158 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package sshlink
+
+import os
+import str
+import sync
+import fs
+import os.process
+import net.tcp
+
+include "@/core/checks.salam"
+include "@/core/profile.salam"
+include "@/system/appdirs.salam"
+include "@/system/openssh.salam"
+include "@/net/resolver.salam"
+include "@/net/sshcmd.salam"
+include "@/tunnel/state.salam"
+
+pub struct Link:
+    pub server: profile.Profile = profile.Profile {}
+    pub ip: str = ""
+    pub port: int = 0
+    pub relay: str = ""
+    pub token: str = ""
+    pub upstream: str = ""
+    pub udp_note: str = ""
+end
+
+func ssh_command(link: Link): process.Command:
+    mut cmd := sshcmd.Base(link.server)
+    cmd.Arg("-D")
+    cmd.Arg("127.0.0.1:" + str.FromInt(link.port as i64))
+    mut options := Vector {} as Vector<str>
+    options.Push("ExitOnForwardFailure=yes")
+    options.Push("ServerAliveInterval=10")
+    options.Push("ServerAliveCountMax=3")
+    each o in options:
+        cmd.Arg("-o")
+        cmd.Arg(o)
+    end
+    plain := link.relay.Len() == 0
+    if plain:
+        cmd.Arg("-N")
+    end
+    mut out := sshcmd.Target(
+        cmd, link.ip, plain ? "" : link.relay + " --listen 0; exec cat > /dev/null"
+    )
+    out.stdin_mode = plain ? 2 : 1
+    out.stdout_mode = plain ? 2 : 1
+    out.stderr_mode = 1
+    ret out
+end
+
+func last_line(text: str, fallback: str): str:
+    mut out := fallback
+    each line in str.Split(text, "\n"):
+        clean := line.Trim()
+        if clean.Len() > 0 and not clean.StartsWith("Warning:"):
+            out = clean
+        end
+    end
+    ret out
+end
+
+func parse_port(text: str): int:
+    at := text.Find("RELAY-PORT ")
+    if at < 0:
+        ret 0
+    end
+    ret checks.PortNumber(text.Substr(at + 11, text.Len() - at - 11).Trim())
+end
+
+func save_relay(token: str, port: int):
+    temporary := appdirs.RelayFile() + ".new"
+    _w := os.WriteFile(temporary, token + "\n" + str.FromInt(port as i64) + "\n")
+    _c := fs.Chmod(temporary, 384)
+    if SALAM_OS_WINDOWS:
+        _r := os.Remove(appdirs.RelayFile())
+    end
+    _m := os.Move(temporary, appdirs.RelayFile())
+end
+
+func read_relay_port(child &: process.Child, token: str): bool:
+    deadline := sync.NowMs() + (15000 as i64)
+    until sync.NowMs() < deadline and not state.StopWanted():
+        chunk := child.ReadLine(300)
+        port := parse_port(chunk.data)
+        if port > 0:
+            save_relay(token, port)
+            ret true
+        end
+        if chunk.eof:
+            break
+        end
+    end
+    ret false
+end
+
+pub func Open(link &: Link, why &: str): process.Child:
+    mut child := process.Launch(ssh_command(link))
+    if not child.ok:
+        why = "cannot start " + openssh.Path() + ": is the OpenSSH client installed?"
+        ret child
+    end
+    if link.relay.Len() > 0:
+        _sent := child.Write(link.token + "\n")
+    end
+    mut errors := ""
+    deadline := sync.NowMs() + (60000 as i64)
+    until sync.NowMs() < deadline and not state.StopWanted():
+        chunk := child.ReadErrAvailable(0)
+        errors += chunk.data
+        if not child.Poll():
+            tail := child.ReadErrFor(200)
+            why = last_line(errors + tail.data, "ssh stopped")
+            ret child
+        end
+        if tcp.WaitListening("127.0.0.1", link.port, 300):
+            found := resolver.Pick(link.port)
+            if found.Len() > 0:
+                link.upstream = found
+                link.udp_note = ""
+                if link.relay.Len() > 0 and not read_relay_port(child, link.token):
+                    link.udp_note = "the relay did not start on the server"
+                end
+                why = ""
+                ret child
+            end
+            why = state.StopWanted() ? "cancelled" : "no DNS server answered through the server (is TCP forwarding allowed?)"
+            Close(child)
+            ret child
+        end
+    end
+    why = state.StopWanted() ? "cancelled" : last_line(errors, "the server did not answer in time")
+    Close(child)
+    ret child
+end
+
+pub func Close(child &: process.Child):
+    if child.ok and child.Poll():
+        _t := child.Terminate()
+        st := child.Wait(2000)
+        if st.timed_out:
+            _k := child.Kill()
+            _w := child.Wait(2000)
+        end
+    end
+end
