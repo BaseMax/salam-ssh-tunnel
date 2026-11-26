@@ -4,6 +4,7 @@ set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 salam=${SALAM:-salam}
 std=${SALAM_STD:-}
+version=${VERSION:-1.0.0}
 case $(uname -s) in
 Darwin) host=macos ;;
 Linux) host=linux ;;
@@ -21,6 +22,11 @@ compile() {
 
 relays() {
     for arch in x86_64 aarch64; do
+        if [ -n "${SALAM_RELAYS:-}" ]; then
+            cp "$SALAM_RELAYS/salam-udprelay-linux-$arch" "$1/"
+            chmod 755 "$1/salam-udprelay-linux-$arch"
+            continue
+        fi
         musl=${SALAM_SYSROOTS:-$HOME/.salam/sysroots}/$arch-linux-musl
         out="$1/salam-udprelay-linux-$arch"
         if [ -f "$musl/libc.a" ]; then
@@ -57,6 +63,12 @@ wintun() {
 }
 
 case $platform in
+relays)
+    dir="${2:-$here/dist/relays}"
+    mkdir -p "$dir"
+    relays "$dir"
+    echo "Built the relays in $dir"
+    ;;
 macos)
     app="${2:-$HOME/Applications}/Salam Tunnel.app"
     mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
@@ -76,7 +88,7 @@ macos)
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>$version</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>
@@ -102,7 +114,7 @@ windows)
     echo "Built $dir/salam-tunnel.exe"
     ;;
 *)
-    echo "usage: build.sh [macos|linux|windows] [folder]" >&2
+    echo "usage: build.sh [macos|linux|windows|relays] [folder]" >&2
     exit 2
     ;;
 esac
