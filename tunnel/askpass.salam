@@ -1,0 +1,25 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package askpass
+
+import os
+import env
+
+pub func Answer(): int:
+    args := os.Args()
+    prompt := args.Len() > 1 ? args.Get(1) : ""
+    if not prompt.Includes("assword"):
+        ret 1
+    end
+    println env.Get("SALAM_TUNNEL_PASSWORD")
+    ret 0
+end
