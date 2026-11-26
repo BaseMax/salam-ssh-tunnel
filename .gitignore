@@ -1,0 +1,6 @@
+dist/
+.salam-build/
+.DS_Store
+wintun.dll
+*.o
+*.exe
