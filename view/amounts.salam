@@ -1,0 +1,40 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package amounts
+
+import str
+import sync
+
+func two_digits(n: i64): str:
+    ret (n < (10 as i64) ? "0" : "") + str.FromInt(n)
+end
+
+pub func Bytes(n: i64): str:
+    if n < (1024 as i64):
+        ret str.FromInt(n) + " B"
+    end
+    if n < (1048576 as i64):
+        ret str.FromInt(n / (1024 as i64)) + " KB"
+    end
+    tenths := n * (10 as i64) / (1048576 as i64)
+    ret str.FromInt(tenths / (10 as i64)) + "." + str.FromInt(tenths % (10 as i64)) + " MB"
+end
+
+pub func Elapsed(since: i64): str:
+    if since == (0 as i64):
+        ret ""
+    end
+    s := (sync.NowMs() - since) / (1000 as i64)
+    ret two_digits(s / (3600 as i64)) + ":" + two_digits(
+        (s / (60 as i64)) % (60 as i64)
+    ) + ":" + two_digits(s % (60 as i64))
+end
