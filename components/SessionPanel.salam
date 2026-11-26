@@ -1,0 +1,43 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component SessionPanel(
+    address: str, dns: str, sent: str, received: str, uptime: str, connections: str
+):
+    ExitAddress:
+        address = address
+        dns = dns
+    end
+    box:
+        layout = "row"
+        gap = 8
+        StatTile:
+            label = "Sent"
+            amount = sent
+        end
+        StatTile:
+            label = "Received"
+            amount = received
+        end
+    end
+    box:
+        layout = "row"
+        gap = 8
+        StatTile:
+            label = "Connected for"
+            amount = uptime
+        end
+        StatTile:
+            label = "Open connections"
+            amount = connections
+        end
+    end
+end
