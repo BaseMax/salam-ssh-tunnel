@@ -31,6 +31,13 @@ The screenshots show sample values.
 | macOS   | Builds, signs in to a server and relays UDP; the privileged tunnel part has not been tested on a real Mac yet |
 | Windows | Builds; it has not been run yet                                                                               |
 
+## Download
+
+Ready-made builds for macOS, Windows and Linux are on the
+[releases page](https://github.com/BaseMax/salam-ssh-tunnel/releases/latest).
+The notes of each release say which file to take and how to start it. Building
+from source is not needed.
+
 ## Requirements
 
 - [Salam](https://github.com/SalamLang/Salam) 0.7.2 or newer
@@ -65,6 +72,9 @@ cd salam-ssh-tunnel
 Linux relay programs that the app copies to a server for UDP. A Windows build
 downloads `wintun.dll` from [wintun.net](https://www.wintun.net), checks its
 SHA-256 and puts it next to the app with its license.
+
+A release is made by pushing a tag such as `v1.0.0`; GitHub Actions builds every
+platform and publishes the files.
 
 ## Use
 
