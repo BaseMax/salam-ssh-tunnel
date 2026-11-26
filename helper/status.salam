@@ -1,0 +1,48 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package status
+
+import os
+import str
+import fs
+import sync
+import net.tun
+
+include "@/system/appdirs.salam"
+include "@/net/resolver.salam"
+
+pub func Prepare():
+    if not os.Exists(appdirs.StateDir()):
+        _m := os.Mkdir(appdirs.StateDir())
+    end
+    _c := fs.Chmod(appdirs.StateDir(), 493)
+end
+
+pub func Write(phase: str, message: str, udp: str, st: tun.Stats):
+    text := "state=" + phase + "\nmessage=" + str.Replace(
+        message, "\n", " "
+    ) + "\npid=" + str.FromInt(
+        os.Pid() as i64
+    ) + "\nbeat=" + str.FromInt(
+        sync.NowMs()
+    ) + "\nup=" + str.FromInt(st.bytes_up) + "\ndown=" + str.FromInt(
+        st.bytes_down
+    ) + "\nactive=" + str.FromInt(st.active) + "\ntotal=" + str.FromInt(
+        st.connections
+    ) + "\ndns=" + str.FromInt(
+        st.dns_queries
+    ) + "\nresolver=" + resolver.Current() + "\nudp=" + udp + "\n"
+    next := appdirs.StatusFile() + ".new"
+    _w := os.WriteFile(next, text)
+    _m := os.Move(next, appdirs.StatusFile())
+    _c := fs.Chmod(appdirs.StatusFile(), 420)
+end
