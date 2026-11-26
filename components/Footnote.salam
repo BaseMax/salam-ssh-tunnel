@@ -1,0 +1,20 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component Footnote(label: str):
+    paragraph:
+        margin = 0
+        font size = 11
+        text align = "center"
+        color = "light dark(#667085, #7d8797)"
+        content = label
+    end
+end
