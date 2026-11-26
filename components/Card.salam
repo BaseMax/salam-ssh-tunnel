@@ -1,0 +1,21 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component Card:
+    box:
+        gap = 10
+        padding = 14
+        radius = 14
+        background = "light dark(#ffffff, #181b21)"
+        border = 1, "solid", "light dark(#e4e7ec, #262b34)"
+        content: end
+    end
+end
