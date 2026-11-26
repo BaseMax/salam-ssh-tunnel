@@ -1,0 +1,63 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package appdirs
+
+import os
+import os.user
+import fs
+
+pub func AppDir(): str:
+    dir := user.HomeDir() + "/.salam-tunnel"
+    if not os.Exists(dir):
+        _m := os.Mkdir(dir)
+    end
+    _c := fs.Chmod(dir, 448)
+    ret dir
+end
+
+pub func ProfileFile(): str:
+    ret AppDir() + "/profile.conf"
+end
+
+pub func RelayFile(): str:
+    ret AppDir() + "/relay.conf"
+end
+
+pub func KnownHostsFile(): str:
+    ret AppDir() + "/known_hosts"
+end
+
+pub func StopFile(): str:
+    ret AppDir() + "/stop"
+end
+
+pub func LockFile(): str:
+    ret AppDir() + "/app.lock"
+end
+
+pub func StateDir(): str:
+    if SALAM_OS_WINDOWS:
+        ret os.Env("ProgramData") + "/salam-tunnel"
+    else SALAM_OS_MAC:
+        ret "/var/db/salam-tunnel"
+    else:
+        ret "/var/lib/salam-tunnel"
+    end
+end
+
+pub func StatusFile(): str:
+    ret StateDir() + "/status"
+end
+
+pub func DnsBackupFile(): str:
+    ret StateDir() + "/dns.backup"
+end
