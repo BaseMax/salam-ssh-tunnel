@@ -1,0 +1,57 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package netinfo
+
+import os
+import os.process
+import net.dns
+import net.tcp
+import net.tunnel
+
+func curl_path(): str:
+    if SALAM_OS_WINDOWS:
+        ret os.Env("SystemRoot") + "/System32/curl.exe"
+    else:
+        ret "/usr/bin/curl"
+    end
+end
+
+pub func FreePort(): int:
+    srv := tcp.BindOn("127.0.0.1", 0)
+    if not tcp.Ok(srv):
+        ret 0
+    end
+    port := tcp.Port(srv)
+    tcp.CloseServer(srv)
+    ret port
+end
+
+pub func Resolve(host: str): str:
+    if tunnel.IsIP(host):
+        ret host
+    end
+    found := dns.LookupA(host)
+    if found.Len() == 0:
+        ret ""
+    end
+    ret found[0]
+end
+
+pub func PublicIp(): str:
+    mut cmd := process.NewCommand(curl_path())
+    cmd.Arg("-fsS")
+    cmd.Arg("--max-time")
+    cmd.Arg("15")
+    cmd.Arg("https://api.ipify.org")
+    r := process.RunCommand(cmd, "", 20000)
+    ret r.status.Success() ? r.stdout.Trim() : ""
+end
