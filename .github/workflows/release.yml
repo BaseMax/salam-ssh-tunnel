@@ -31,7 +31,7 @@ jobs:
           echo "number=$number" >>"$GITHUB_OUTPUT"
 
   relays:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: sh tools/setup-salam.sh "$RUNNER_TEMP/salam" linux-x86_64
@@ -86,9 +86,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             arch: x86_64
-          - runner: ubuntu-22.04-arm
+          - runner: ubuntu-24.04-arm
             arch: aarch64
     runs-on: ${{ matrix.runner }}
     env:
@@ -117,7 +117,7 @@ jobs:
 
   windows:
     needs: [version, relays]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       VERSION: ${{ needs.version.outputs.number }}
     steps:
