@@ -1,0 +1,175 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SALAM_VERSION: "0.7.1"
+  SALAM_STD_REF: "70207948c44f6913ca0afb666a2d717df1017c0a"
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      number: ${{ steps.pick.outputs.number }}
+    steps:
+      - id: pick
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            number=${GITHUB_REF_NAME#v}
+          else
+            number=0.0.0
+          fi
+          echo "$number" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' ||
+            { echo "Tags must look like v1.2.3" >&2; exit 1; }
+          echo "number=$number" >>"$GITHUB_OUTPUT"
+
+  relays:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: sh tools/setup-salam.sh "$RUNNER_TEMP/salam" linux-x86_64
+      - run: |
+          sh build.sh relays "$PWD/relays"
+          test -x relays/salam-udprelay-linux-x86_64
+          test -x relays/salam-udprelay-linux-aarch64
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: relays
+          path: relays
+          if-no-files-found: error
+
+  macos:
+    needs: [version, relays]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    env:
+      VERSION: ${{ needs.version.outputs.number }}
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: relays
+          path: relays
+      - run: sh tools/setup-salam.sh "$RUNNER_TEMP/salam" macos-${{ matrix.arch }}
+      - run: SALAM_RELAYS="$PWD/relays" sh build.sh macos "$PWD/stage"
+      - run: sh tools/smoke.sh "stage/Salam Tunnel.app/Contents/MacOS/salam-tunnel"
+      - run: |
+          cp LICENSE stage/LICENSE.txt
+          ln -s /Applications stage/Applications
+          mkdir out
+          hdiutil create -volname "Salam Tunnel" -srcfolder stage -format UDZO \
+            "out/SalamTunnel-$VERSION-macos-${{ matrix.arch }}.dmg"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-macos-${{ matrix.arch }}
+          path: out
+          if-no-files-found: error
+
+  linux:
+    needs: [version, relays]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            arch: x86_64
+          - runner: ubuntu-22.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.runner }}
+    env:
+      VERSION: ${{ needs.version.outputs.number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: relays
+          path: relays
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc libc6-dev libx11-dev fonts-dejavu-core
+      - run: sh tools/setup-salam.sh "$RUNNER_TEMP/salam" linux-${{ matrix.arch }}
+      - run: SALAM_RELAYS="$PWD/relays" sh build.sh linux "$PWD/stage/salam-tunnel"
+      - run: sh tools/smoke.sh stage/salam-tunnel/salam-tunnel
+      - run: |
+          cp LICENSE stage/salam-tunnel/LICENSE.txt
+          mkdir out
+          tar -C stage -czf "out/SalamTunnel-$VERSION-linux-${{ matrix.arch }}.tar.gz" salam-tunnel
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-linux-${{ matrix.arch }}
+          path: out
+          if-no-files-found: error
+
+  windows:
+    needs: [version, relays]
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ needs.version.outputs.number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: relays
+          path: relays
+      - run: sh tools/setup-salam.sh "$RUNNER_TEMP/salam" linux-x86_64
+      - run: SALAM_RELAYS="$PWD/relays" sh build.sh windows "$PWD/stage/Salam Tunnel"
+      - run: |
+          cp LICENSE "stage/Salam Tunnel/LICENSE.txt"
+          mkdir out
+          cd stage
+          zip -qr "../out/SalamTunnel-$VERSION-windows-x86_64.zip" "Salam Tunnel"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-windows-x86_64
+          path: out
+          if-no-files-found: error
+
+  windows-check:
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package-windows-x86_64
+          path: package
+      - shell: bash
+        run: |
+          unzip -q package/*.zip -d unpacked
+          sh tools/smoke.sh "unpacked/Salam Tunnel/salam-tunnel.exe"
+
+  publish:
+    if: github.ref_type == 'tag'
+    needs: [version, macos, linux, windows, windows-check]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: package-*
+          merge-multiple: true
+          path: out
+      - run: |
+          (cd out && sha256sum SalamTunnel-* >SHA256SUMS)
+          sed "s/@VERSION@/$VERSION/g" .github/release-notes.md >notes.md
+          gh release create "$GITHUB_REF_NAME" out/* --verify-tag \
+            --title "Salam Tunnel $VERSION" --notes-file notes.md
