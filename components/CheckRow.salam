@@ -1,0 +1,41 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component CheckRow(name: str, label: str, ticked: bool, toggled: func ()):
+    box:
+        layout = "row"
+        align = "center"
+        gap = 8
+        button:
+            id = name
+            width = 20
+            height = 20
+            padding = 0
+            radius = 6
+            font size = 13
+            font weight = "bold"
+            color = "#ffffff"
+            background = "light dark(#ffffff, #0f1217)"
+            border = 1, "solid", "light dark(#d0d5dd, #475467)"
+            if ticked:
+                background = "#2563eb"
+                border = 1, "solid", "#2563eb"
+            end
+            click = (): toggled() end
+            content = ticked ? "✓" : ""
+        end
+        paragraph:
+            margin = 0
+            font size = 13
+            content = label
+        end
+    end
+end
