@@ -1,0 +1,120 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package engine
+
+import os
+import sync
+import crypto
+
+include "@/core/profile.salam"
+include "@/system/appdirs.salam"
+include "@/system/openssh.salam"
+include "@/system/hostnet.salam"
+include "@/net/netinfo.salam"
+include "@/net/remote.salam"
+include "@/tunnel/state.salam"
+include "@/tunnel/sshlink.salam"
+include "@/tunnel/admin.salam"
+include "@/tunnel/monitor.salam"
+
+mut _job := profile.Profile {}
+
+func finish(message: str):
+    state.Publish(
+        state.Snapshot { phase = state.IDLE, message = message, broken = NeedsRepair() }
+    )
+end
+
+func run():
+    pr := _job
+    state.SetPhase(state.SIGNING_IN, "Signing in to " + pr.host)
+    mut link := sshlink.Link { server = pr, ip = netinfo.Resolve(pr.host) }
+    if link.ip.Len() == 0:
+        finish("Cannot find the address of " + pr.host)
+        ret
+    end
+    link.port = netinfo.FreePort()
+    mut relay_note := ""
+    if pr.udp:
+        state.SetPhase(state.SIGNING_IN, "Preparing the UDP relay")
+        link.relay = remote.Install(pr, link.ip, relay_note)
+        if link.relay.Len() > 0:
+            link.token = crypto.RandomHex(24)
+        end
+    end
+    if pr.password.Len() > 0 and openssh.TooOldForPasswords():
+        finish(
+            "Password sign in needs OpenSSH 8.4 or newer. Install it from github.com/PowerShell/Win32-OpenSSH/releases or use an SSH key."
+        )
+        ret
+    end
+    state.SetPhase(state.SIGNING_IN, "Signing in to " + pr.host)
+    mut why := ""
+    mut ssh := sshlink.Open(link, why)
+    if why.Len() > 0 and why != "cancelled" and not why.Includes("denied") and
+        not state.StopWanted():
+        state.SetPhase(state.SIGNING_IN, "The server is slow, trying again")
+        ssh.Close()
+        why = ""
+        ssh = sshlink.Open(link, why)
+    end
+    if why.Len() > 0:
+        finish(why == "cancelled" ? "" : why)
+        ret
+    end
+    state.SetPhase(state.ASKING_ADMIN, "Waiting for your administrator password")
+    use_relay := link.relay.Len() > 0 and link.udp_note.Len() == 0
+    failed := admin.StartHelper(link.ip, link.port, link.upstream, use_relay)
+    if failed.Len() > 0 or state.StopWanted():
+        admin.StopHelper()
+        sshlink.Close(ssh)
+        finish(failed)
+        ret
+    end
+    state.Publish(
+        state.Snapshot {
+            phase = state.UP,
+            since = sync.NowMs(),
+            udp_note = relay_note.Len() > 0 ? relay_note : link.udp_note
+        }
+    )
+    ended := monitor.Watch(link, ssh)
+    state.SetPhase(state.CLOSING, "Restoring your network")
+    admin.StopHelper()
+    sshlink.Close(ssh)
+    finish(ended)
+end
+
+func repair_run():
+    failed := admin.Repair()
+    finish(failed.Len() > 0 ? failed : "Network settings restored")
+end
+
+pub func NeedsRepair(): bool:
+    ret os.Exists(appdirs.DnsBackupFile()) and not admin.HelperRunning()
+end
+
+pub func StopOrphans():
+    hostnet.StopOrphans("ssh .*UserKnownHostsFile=\"" + appdirs.KnownHostsFile())
+end
+
+pub func Start(pr: profile.Profile):
+    state.ClearStop()
+    state.SetPhase(state.SIGNING_IN, "Starting")
+    _job = pr
+    _t := spawn(run)
+end
+
+pub func StartRepair():
+    state.SetPhase(state.CLOSING, "Restoring your network")
+    _t := spawn(repair_run)
+end
