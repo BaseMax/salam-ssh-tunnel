@@ -72,7 +72,9 @@ relays)
 macos)
     app="${2:-$HOME/Applications}/Salam Tunnel.app"
     mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-    compile "$here" --ui=native -o "$app/Contents/MacOS/salam-tunnel"
+    minimum=${MACOSX_DEPLOYMENT_TARGET:-}
+    compile "$here" --ui=native ${minimum:+"--target=$(uname -m)-apple-macosx$minimum"} \
+        -o "$app/Contents/MacOS/salam-tunnel"
     relays "$app/Contents/Resources"
     cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
