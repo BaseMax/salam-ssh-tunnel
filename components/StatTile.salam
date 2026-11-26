@@ -1,0 +1,31 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component StatTile(label: str, amount: str):
+    box:
+        grow = 1
+        width = 0
+        gap = 2
+        padding = 10, 12
+        radius = 10
+        background = "light dark(#f2f4f7, #20242c)"
+        Muted:
+            label = label
+            size = 11
+        end
+        paragraph:
+            margin = 0
+            font size = 15
+            font weight = "bold"
+            content = amount
+        end
+    end
+end
