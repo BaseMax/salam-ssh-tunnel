@@ -1,0 +1,38 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component TextField(
+    name: str, label: str, kind: str, value: str, changed: func (str)
+):
+    box:
+        gap = 4
+        Muted:
+            label = label
+            size = 12
+        end
+        input:
+            id = name
+            type = kind
+            value = value
+            input = (v: str): changed(v) end
+            padding = 7, 10
+            radius = 8
+            width = 100%
+            font size = 14
+            color = "light dark(#101828, #f2f4f7)"
+            background = "light dark(#ffffff, #0f1217)"
+            border = 1, "solid", "light dark(#d0d5dd, #333a45)"
+            focus:
+                border = 1, "solid", "light dark(#2563eb, #60a5fa)"
+            end
+        end
+    end
+end
