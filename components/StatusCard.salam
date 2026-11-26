@@ -1,0 +1,45 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component StatusCard(title: str, hint: str, busy: bool, up: bool):
+    box:
+        layout = "row"
+        align = "center"
+        gap = 12
+        padding = 14
+        radius = 14
+        background = "light dark(#ffffff, #181b21)"
+        border = 1, "solid", "light dark(#e4e7ec, #262b34)"
+        StatusDot:
+            busy = busy
+            up = up
+        end
+        box:
+            grow = 1
+            width = 0
+            gap = 2
+            paragraph:
+                id = "status"
+                margin = 0
+                font size = 18
+                font weight = "bold"
+                content = title
+            end
+            paragraph:
+                id = "message"
+                margin = 0
+                font size = 12
+                color = "light dark(#667085, #98a2b3)"
+                content = hint
+            end
+        end
+    end
+end
