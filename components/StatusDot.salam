@@ -1,0 +1,40 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component StatusDot(busy: bool, up: bool):
+    box:
+        width = 40
+        height = 40
+        radius = 20
+        layout = "row"
+        align = "center"
+        justify = "center"
+        background = "light dark(#eaecf0, #262b34)"
+        if busy:
+            background = "light dark(#fef0c7, #4a3410)"
+        end
+        if up:
+            background = "light dark(#d1fadf, #0f3d28)"
+        end
+        box:
+            width = 14
+            height = 14
+            radius = 7
+            background = "light dark(#98a2b3, #667085)"
+            if busy:
+                background = "light dark(#f79009, #fdb022)"
+            end
+            if up:
+                background = "light dark(#12b76a, #32d583)"
+            end
+        end
+    end
+end
