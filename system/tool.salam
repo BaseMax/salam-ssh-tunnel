@@ -1,0 +1,29 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package tool
+
+import str
+import os.shell
+
+pub func Run(program: str, words: str): shell.CmdResult:
+    mut args := Vector {} as Vector<str>
+    each word in str.Split(words, " "):
+        if word.Len() > 0:
+            args.Push(word)
+        end
+    end
+    ret shell.Run(program, args)
+end
+
+pub func RunArgs(program: str, args: Vector<str>): shell.CmdResult:
+    ret shell.Run(program, args)
+end
