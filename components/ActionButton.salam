@@ -1,0 +1,30 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component ActionButton(label: str, stopping: bool, pressed: func ()):
+    button:
+        id = "action"
+        padding = 11
+        radius = 10
+        font size = 15
+        font weight = "bold"
+        color = "#ffffff"
+        border = "none"
+        background = "light dark(#2563eb, #3b82f6)"
+        hover background = "light dark(#1d4ed8, #2563eb)"
+        if stopping:
+            background = "light dark(#d92d20, #e5484d)"
+            hover background = "light dark(#b42318, #cd2b31)"
+        end
+        click = (): pressed() end
+        content = label
+    end
+end
