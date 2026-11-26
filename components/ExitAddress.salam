@@ -1,0 +1,36 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component ExitAddress(address: str, dns: str):
+    box:
+        gap = 2
+        align = "center"
+        padding = 10, 0
+        Muted:
+            label = "Public IP address"
+            size = 12
+        end
+        paragraph:
+            id = "ip"
+            margin = 0
+            font size = 26
+            font weight = "bold"
+            content = address
+        end
+        paragraph:
+            id = "dns"
+            margin = 0
+            font size = 12
+            color = "light dark(#667085, #98a2b3)"
+            content = dns
+        end
+    end
+end
