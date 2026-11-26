@@ -1,0 +1,76 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package labels
+
+include "@/tunnel/state.salam"
+
+pub func Title(phase: int): str:
+    if phase == state.UP:
+        ret "Connected"
+    end
+    if phase == state.SIGNING_IN or phase == state.ASKING_ADMIN:
+        ret "Connecting"
+    end
+    if phase == state.RECONNECTING:
+        ret "Reconnecting"
+    end
+    if phase == state.CLOSING:
+        ret "Disconnecting"
+    end
+    ret "Not connected"
+end
+
+pub func Hint(phase: int, message: str): str:
+    if message.Len() > 0:
+        ret message
+    end
+    if phase == state.UP:
+        ret "Your traffic goes through the server"
+    end
+    if phase == state.IDLE:
+        ret "Your traffic goes out directly"
+    end
+    ret "One moment"
+end
+
+pub func Action(phase: int): str:
+    if phase == state.IDLE:
+        ret "Connect"
+    end
+    if phase == state.CLOSING:
+        ret "Please wait"
+    end
+    if phase == state.UP:
+        ret "Disconnect"
+    end
+    ret "Cancel"
+end
+
+pub func Dns(s: state.Snapshot): str:
+    mut out := "DNS " + (s.dns_server == "127.0.0.53" ? "of the server" : s.dns_server)
+    if s.udp_state == "on":
+        out += ", UDP on"
+    else s.udp_state == "waiting":
+        out += ", UDP starting"
+    end
+    ret out
+end
+
+pub func Footer(s: state.Snapshot, udp_ticked: bool): str:
+    if s.udp_state == "on" or s.udp_state == "waiting" or s.phase == state.IDLE and udp_ticked:
+        ret "IPv4 TCP and UDP use the tunnel. IPv6 and QUIC are blocked."
+    end
+    if s.udp_note.Len() > 0:
+        ret "UDP is off: " + s.udp_note + "."
+    end
+    ret "IPv4 TCP and DNS use the tunnel. The rest is blocked."
+end
