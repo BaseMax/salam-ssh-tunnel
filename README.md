@@ -104,16 +104,17 @@ your apps -> tunnel device -> helper -> SSH (SOCKS) -> server -> internet
                                      \-> UDP relay over the same SSH session
 ```
 
-| File                           | Job                                                                      |
-| ------------------------------ | ------------------------------------------------------------------------ |
-| `main.salam`                   | the window and the program's modes                                       |
-| `engine.salam`                 | runs `ssh`, starts the helper, watches and reconnects                    |
-| `helper.salam`                 | runs as administrator: the tunnel device (`std/net/tun`), routes and DNS |
-| `host.salam`                   | what differs between systems: paths, DNS settings and routes             |
-| `resolver.salam`               | picks a DNS server that answers, and switches                            |
-| `sshcmd.salam`, `remote.salam` | the SSH command line, and copying the relay                              |
-| `profile.salam`                | saved settings and the password                                          |
-| `relay/main.salam`             | the program that sends UDP from the server (`std/net/udprelay`)          |
+| Path               | Job                                                                     |
+| ------------------ | ----------------------------------------------------------------------- |
+| `main.salam`       | the page, its state and the program's modes                             |
+| `components/`      | the pieces of the window: cards, fields, check rows, buttons and stats  |
+| `view/`            | the texts and amounts shown in the window                               |
+| `core/`            | saved settings, the password and input checks                           |
+| `tunnel/`          | runs `ssh`, starts the helper, watches and reconnects                   |
+| `helper/`          | runs as administrator: the tunnel device (`std/net/tun`) and its status |
+| `system/`          | what differs between systems: paths, OpenSSH, DNS settings and routes   |
+| `net/`             | the SSH command line, DNS fallback and copying the relay                |
+| `relay/main.salam` | the program that sends UDP from the server (`std/net/udprelay`)         |
 
 The window and the helper are the same program. The system asks for permission
 before the helper starts: a password prompt on macOS, polkit on Linux, UAC on
