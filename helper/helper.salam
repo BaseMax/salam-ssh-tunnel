@@ -1,0 +1,125 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package helper
+
+import os
+import sync
+import os.signal
+import net.tun
+import net.udprelay
+import os.process
+
+include "@/core/checks.salam"
+include "@/system/hostnet.salam"
+include "@/net/resolver.salam"
+include "@/helper/status.salam"
+include "@/helper/relaylink.salam"
+include "@/helper/options.salam"
+
+mut _udp_wanted := false
+mut _relay := udprelay.Client {}
+
+func pause(set: void*, arrived: void*): int:
+    if SALAM_OS_WINDOWS:
+        sync.SleepMs(1000)
+        _unused := set == arrived
+        ret 0
+    else:
+        ret signal.WaitTimeout(set, arrived, 1000)
+    end
+end
+
+func number(text: str): int:
+    p := text as u8*
+    mut n := 0
+    repeat text.Len() in i:
+        c := p[i] as int
+        if c < ('0' as int) or c > ('9' as int) or n > 100000000:
+            ret 0
+        end
+        n = n * 10 + (c - ('0' as int))
+    end
+    ret n
+end
+
+func report(phase: str, message: str, st: tun.Stats):
+    udp := not _udp_wanted ? "off" : (_relay.Ready() ? "on" : "waiting")
+    status.Write(phase, message, udp, st)
+end
+
+pub func Run(
+    server_ip: str,
+    socks_port: int,
+    parent: str,
+    stop_file: str,
+    first_dns: str,
+    use_relay: bool,
+    relay_file: str
+): int:
+    status.Prepare()
+    if socks_port == 0 or not checks.IsName(server_ip, ".") or not checks.IsName(first_dns, "."):
+        report("error", "bad helper arguments", tun.Stats {})
+        ret 2
+    end
+    set := signal.NewSet()
+    if not SALAM_OS_WINDOWS:
+        _a := signal.AddSignal(set, 1)
+        _b := signal.AddSignal(set, 2)
+        _c := signal.AddSignal(set, 15)
+        _d := signal.Block(set)
+    end
+    hostnet.RestoreDns()
+    hostnet.DropRoute(server_ip)
+    if use_relay:
+        _udp_wanted = true
+        _relay = relaylink.Open(socks_port, relay_file)
+    end
+    resolver.Use(first_dns)
+    session := tun.Start(options.Build(server_ip, socks_port, _udp_wanted, _relay))
+    if not session.ok:
+        report("error", session.error, tun.Stats {})
+        ret 1
+    end
+    if not hostnet.TakeOverDns(session.dns):
+        hostnet.RestoreDns()
+        tun.Stop(session)
+        report("error", "could not change the system DNS servers", tun.Stats {})
+        ret 1
+    end
+    resolver.Watch(socks_port, 20000)
+    arrived := signal.NewSet()
+    mut ticks := 0
+    mut go := true
+    until go:
+        report("up", session.name, tun.SessionStats(session))
+        got := pause(set, arrived)
+        ticks++
+        if got > 0 or os.Exists(stop_file) or not process.Alive(number(parent)):
+            go = false
+        else ticks % 5 == 0:
+            hostnet.KeepServerRoute(server_ip)
+        end
+    end
+    last := tun.SessionStats(session)
+    hostnet.RestoreDns()
+    tun.Stop(session)
+    hostnet.DropRoute(server_ip)
+    report("stopped", "", last)
+    ret 0
+end
+
+pub func Repair(): int:
+    status.Prepare()
+    hostnet.RestoreDns()
+    report("stopped", "", tun.Stats {})
+    ret 0
+end
