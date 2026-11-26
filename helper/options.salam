@@ -1,0 +1,43 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package options
+
+import net.tun
+import net.tunnel
+import net.socks
+import net.udprelay
+
+include "@/net/resolver.salam"
+
+pub func Build(
+    server_ip: str, socks_port: int, use_udp: bool, relay: udprelay.Client
+): tun.Options:
+    mut blocked := Vector {} as Vector<int>
+    blocked.Push(443)
+    mut exclude := Vector {} as Vector<str>
+    exclude.Push(server_ip)
+    mut client := socks.NewClient("127.0.0.1", socks_port)
+    client.timeout_ms = 20000
+    proxy := tunnel.ProxyDialer {
+        upstream = tunnel.DirectDialer {}, hop = socks.NewConnector(client)
+    }
+    ret tun.Options {
+        dialer = resolver.Failover { inner = proxy },
+        exclude = exclude,
+        upstream = resolver.PLACEHOLDER + ":53",
+        idle_ms = 900000,
+        sniff = false,
+        relay_udp = use_udp,
+        udp = relay,
+        udp_blocked = blocked
+    }
+end
