@@ -1,0 +1,19 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component Muted(label: str, size: int):
+    paragraph:
+        margin = 0
+        font size = size
+        color = "light dark(#667085, #98a2b3)"
+        content = label
+    end
+end
