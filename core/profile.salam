@@ -1,0 +1,84 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package profile
+
+import os
+import os.secret
+
+include "@/core/checks.salam"
+include "@/system/appdirs.salam"
+
+const SECRET_SERVICE := "ir.salamlang.sshtunnel"
+
+pub struct Profile:
+    pub host: str = ""
+    pub port: str = "22"
+    pub user: str = ""
+    pub password: str = ""
+    pub remember: bool = false
+    pub udp: bool = false
+end
+
+func account(pr: Profile): str:
+    ret pr.user + "@" + pr.host + ":" + pr.port
+end
+
+func yes_no(value: bool): str:
+    ret value ? "yes" : "no"
+end
+
+pub func Problem(pr: Profile): str:
+    if not checks.IsName(pr.host, ".-"):
+        ret "Enter a server name or IPv4 address."
+    end
+    if checks.PortNumber(pr.port) == 0:
+        ret "The port must be a number from 1 to 65535."
+    end
+    if not checks.IsName(pr.user, ".-_@"):
+        ret "Enter the SSH user name."
+    end
+    ret ""
+end
+
+pub func Load(): Profile:
+    mut pr := Profile {}
+    if not os.Exists(appdirs.ProfileFile()):
+        ret pr
+    end
+    text := os.ReadFile(appdirs.ProfileFile())
+    pr.host = checks.ValueOf(text, "host")
+    pr.port = checks.ValueOf(text, "port")
+    pr.user = checks.ValueOf(text, "user")
+    pr.remember = checks.ValueOf(text, "remember") == "yes"
+    pr.udp = checks.ValueOf(text, "udp") == "yes"
+    if pr.port.Len() == 0:
+        pr.port = "22"
+    end
+    if pr.remember and secret.Available():
+        pr.password = secret.Get(SECRET_SERVICE, account(pr))
+    end
+    ret pr
+end
+
+pub func Save(pr: Profile):
+    text := "host=" + pr.host + "\nport=" + pr.port + "\nuser=" + pr.user + "\nremember=" +
+        yes_no(pr.remember) + "\nudp=" + yes_no(pr.udp) + "\n"
+    _w := os.WriteFile(appdirs.ProfileFile(), text)
+    if not secret.Available():
+        ret
+    end
+    if pr.remember and pr.password.Len() > 0:
+        _stored := secret.Set(SECRET_SERVICE, account(pr), pr.password)
+    else:
+        _gone := secret.Delete(SECRET_SERVICE, account(pr))
+    end
+end
