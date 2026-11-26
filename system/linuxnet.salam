@@ -1,0 +1,46 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package linuxnet
+
+import os
+import net.tun
+
+include "@/system/tool.salam"
+include "@/system/backup.salam"
+
+const RESOLV_CONF := "/etc/resolv.conf"
+const STUB_DNS := "nameserver 127.0.0.53"
+
+pub func TakeOverDns(server: str): bool:
+    current := os.ReadFile(RESOLV_CONF)
+    if current.Includes(STUB_DNS):
+        ret true
+    end
+    if not backup.Keep(current):
+        ret false
+    end
+    ret os.WriteFile(RESOLV_CONF, "nameserver " + server + "\n") >= 0
+end
+
+pub func RestoreDns():
+    if os.WriteFile(RESOLV_CONF, backup.Read()) >= 0:
+        backup.Discard()
+    end
+end
+
+pub func KeepRoute(ip: str):
+    gw := tun.ParseLinuxRoutes(os.ReadFile("/proc/net/route"))
+    if not gw.ok or gw.ip.Len() == 0:
+        ret
+    end
+    _r := tool.Run("ip", "route replace " + ip + "/32 via " + gw.ip + " dev " + gw.iface + " onlink")
+end
