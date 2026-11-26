@@ -34,5 +34,6 @@ tar -xzf SalamTunnel-@VERSION@-linux-x86_64.tar.gz
 ./salam-tunnel/salam-tunnel
 ```
 
-It needs `openssh-client`, `iproute2`, `curl`, the X11 library and polkit
-(`pkexec`) unless you start it as root.
+It needs glibc 2.38 or newer (Ubuntu 24.04, Debian 13, Fedora 39 or later),
+`openssh-client`, `iproute2`, `curl`, the X11 library and polkit (`pkexec`)
+unless you start it as root.
