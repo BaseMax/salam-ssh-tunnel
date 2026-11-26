@@ -1,0 +1,98 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package monitor
+
+import sync
+import os.process
+
+include "@/core/checks.salam"
+include "@/net/netinfo.salam"
+include "@/tunnel/state.salam"
+include "@/tunnel/sshlink.salam"
+include "@/tunnel/admin.salam"
+
+func check_exit_ip():
+    mut found := ""
+    repeat 3:
+        if found.Len() == 0 and state.Current().phase == state.UP:
+            found = netinfo.PublicIp()
+        end
+    end
+    mut s := state.Current()
+    if s.phase != state.UP:
+        ret
+    end
+    s.exit_ip = found.Len() > 0 ? found : "unknown"
+    state.Publish(s)
+end
+
+func apply_status(s &: state.Snapshot, text: str):
+    s.up = checks.LeadingNumber(checks.ValueOf(text, "up"))
+    s.down = checks.LeadingNumber(checks.ValueOf(text, "down"))
+    s.active = checks.LeadingNumber(checks.ValueOf(text, "active"))
+    s.dns_server = checks.ValueOf(text, "resolver")
+    s.udp_state = checks.ValueOf(text, "udp")
+    s.dns = checks.LeadingNumber(checks.ValueOf(text, "dns"))
+end
+
+pub func Watch(link &: sshlink.Link, ssh &: process.Child): str:
+    _c := spawn(check_exit_ip)
+    mut ended := ""
+    mut beat := ""
+    mut beat_at := sync.NowMs()
+    mut delay := 1000
+    mut next_try := 0 as i64
+    until not state.StopWanted() and ended.Len() == 0:
+        sync.SleepMs(500)
+        text := admin.ReadStatus()
+        fresh := checks.ValueOf(text, "beat")
+        if fresh != beat:
+            beat = fresh
+            beat_at = sync.NowMs()
+        end
+        if checks.ValueOf(text, "state") != "up":
+            ended = "The tunnel stopped " + checks.ValueOf(text, "message")
+        else sync.NowMs() - beat_at > (20000 as i64):
+            ended = "The tunnel helper stopped responding"
+        end
+        mut s := state.Current()
+        apply_status(s, text)
+        if ssh.ok:
+            _drain := ssh.ReadErrAvailable(0)
+        end
+        if not ssh.ok or not ssh.Poll():
+            s.phase = state.RECONNECTING
+            if sync.NowMs() >= next_try and not state.StopWanted():
+                state.Publish(s)
+                mut again := ""
+                ssh.Close()
+                ssh = sshlink.Open(link, again)
+                if again.Len() == 0:
+                    s.phase = state.UP
+                    s.message = ""
+                    delay = 1000
+                    state.Publish(s)
+                    _again := spawn(check_exit_ip)
+                else:
+                    ssh.ok = false
+                    s.message = again
+                    next_try = sync.NowMs() + (delay as i64)
+                    delay = delay < 15000 ? delay * 2 : delay
+                end
+            end
+        else:
+            s.phase = state.UP
+        end
+        state.Publish(s)
+    end
+    ret ended
+end
