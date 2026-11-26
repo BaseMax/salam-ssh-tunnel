@@ -1,14 +1,12 @@
 /*
- * Salam Programming Language (2018-2026)
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
  *
- *   +-------------------+
- *   |     S A L A M     |
- *   +-------------------+
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
  *
- * Designed by Seyyed Ali Mohammadiyeh and the Salam Team
- *
- * Repository: https://github.com/SalamLang/Salam
- *
+ * Licensed under GPL-3.0
  */
 
 package resolver
