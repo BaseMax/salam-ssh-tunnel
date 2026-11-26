@@ -1,0 +1,79 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component ConnectForm(
+    server: str,
+    port: str,
+    user: str,
+    password: str,
+    remember: bool,
+    udp: bool,
+    can_remember: bool,
+    server_changed: func (str),
+    port_changed: func (str),
+    user_changed: func (str),
+    password_changed: func (str),
+    remember_toggled: func (),
+    udp_toggled: func ()
+):
+    box:
+        layout = "row"
+        gap = 8
+        box:
+            grow = 1
+            TextField:
+                name = "server"
+                label = "Server"
+                kind = "text"
+                value = server
+                changed = server_changed
+            end
+        end
+        box:
+            width = 84
+            TextField:
+                name = "port"
+                label = "Port"
+                kind = "text"
+                value = port
+                changed = port_changed
+            end
+        end
+    end
+    TextField:
+        name = "user"
+        label = "User name"
+        kind = "text"
+        value = user
+        changed = user_changed
+    end
+    TextField:
+        name = "password"
+        label = "Password (empty to use an SSH key)"
+        kind = "password"
+        value = password
+        changed = password_changed
+    end
+    if can_remember:
+        CheckRow:
+            name = "remember"
+            label = "Remember the password"
+            ticked = remember
+            toggled = remember_toggled
+        end
+    end
+    CheckRow:
+        name = "udp"
+        label = "UDP too (copies a relay to the server)"
+        ticked = udp
+        toggled = udp_toggled
+    end
+end
