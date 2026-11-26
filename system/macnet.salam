@@ -1,0 +1,129 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package macnet
+
+import str
+
+include "@/system/tool.salam"
+include "@/system/backup.salam"
+
+const NETWORKSETUP := "/usr/sbin/networksetup"
+const ROUTE := "/sbin/route"
+
+func services(): Vector<str>:
+    mut out := Vector {} as Vector<str>
+    r := tool.Run(NETWORKSETUP, "-listallnetworkservices")
+    mut first := true
+    each line in str.Split(r.out, "\n"):
+        if not first and line.Len() > 0 and not line.StartsWith("*"):
+            out.Push(line)
+        end
+        first = false
+    end
+    ret out
+end
+
+func dns_of(service: str): str:
+    mut args := Vector {} as Vector<str>
+    args.Push("-getdnsservers")
+    args.Push(service)
+    r := tool.RunArgs(NETWORKSETUP, args)
+    if r.code != 0:
+        ret ""
+    end
+    text := r.out.Trim()
+    if text.Len() == 0 or text.Includes(" "):
+        ret "Empty"
+    end
+    ret str.Replace(text, "\n", " ")
+end
+
+func set_dns(service: str, servers: str): bool:
+    mut args := Vector {} as Vector<str>
+    args.Push("-setdnsservers")
+    args.Push(service)
+    each s in str.Split(servers, " "):
+        if s.Len() > 0:
+            args.Push(s)
+        end
+    end
+    ret tool.RunArgs(NETWORKSETUP, args).code == 0
+end
+
+func flush_dns():
+    _a := tool.Run("/usr/bin/dscacheutil", "-flushcache")
+    _b := tool.Run("/usr/bin/killall", "-HUP mDNSResponder")
+end
+
+func gateway(): str:
+    r := tool.Run("/usr/sbin/netstat", "-rn -f inet")
+    each line in str.Split(r.out, "\n"):
+        f := str.Fields(line)
+        if f.Len() >= 4 and f[0] == "default" and not f[3].StartsWith("utun") and
+            f[1].Includes("."):
+            ret f[1]
+        end
+    end
+    ret ""
+end
+
+pub func TakeOverDns(server: str): bool:
+    all := services()
+    if not backup.Exists():
+        mut saved := ""
+        each service in all:
+            old := dns_of(service)
+            if old.Len() > 0:
+                saved = saved + service + "\t" + old + "\n"
+            end
+        end
+        if not backup.Keep(saved):
+            ret false
+        end
+    end
+    mut changed := 0
+    each service in all:
+        if set_dns(service, server):
+            changed++
+        end
+    end
+    flush_dns()
+    ret changed > 0
+end
+
+pub func RestoreDns():
+    each line in str.Split(backup.Read(), "\n"):
+        parts := str.Split(line, "\t")
+        if parts.Len() == 2:
+            _ok := set_dns(parts[0], parts[1])
+        end
+    end
+    backup.Discard()
+    flush_dns()
+end
+
+pub func DropRoute(ip: str):
+    _r := tool.Run(ROUTE, "-q -n delete -host " + ip)
+end
+
+pub func KeepRoute(ip: str):
+    gw := gateway()
+    if gw.Len() == 0:
+        ret
+    end
+    current := tool.Run(ROUTE, "-n get " + ip)
+    if current.code == 0 and current.out.Includes("gateway: " + gw + "\n"):
+        ret
+    end
+    DropRoute(ip)
+    _r := tool.Run(ROUTE, "-q -n add -host " + ip + " " + gw)
+end
