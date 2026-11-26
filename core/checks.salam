@@ -1,0 +1,73 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package checks
+
+import str
+
+pub func ValueOf(text: str, key: str): str:
+    each line in str.Split(text, "\n"):
+        if line.StartsWith(key + "="):
+            ret line.Substr(key.Len() + 1, line.Len() - key.Len() - 1).Trim()
+        end
+    end
+    ret ""
+end
+
+pub func IsName(text: str, extra: str): bool:
+    if text.Len() == 0 or text.Len() > 253 or text.StartsWith("-"):
+        ret false
+    end
+    p := text as u8*
+    allowed := extra as u8*
+    repeat text.Len() in i:
+        c := p[i] as int
+        mut ok := (c >= ('a' as int) and c <= ('z' as int)) or
+            (c >= ('A' as int) and c <= ('Z' as int)) or (c >= ('0' as int) and c <= ('9' as int))
+        repeat extra.Len() in k:
+            if c == (allowed[k] as int):
+                ok = true
+            end
+        end
+        if not ok:
+            ret false
+        end
+    end
+    ret true
+end
+
+pub func LeadingNumber(text: str): i64:
+    p := text as u8*
+    mut n := 0 as i64
+    repeat text.Len() in i:
+        c := p[i] as int
+        if c < ('0' as int) or c > ('9' as int):
+            break
+        end
+        n = n * (10 as i64) + ((c - ('0' as int)) as i64)
+    end
+    ret n
+end
+
+pub func PortNumber(text: str): int:
+    if text.Len() == 0 or text.Len() > 5:
+        ret 0
+    end
+    p := text as u8*
+    repeat text.Len() in i:
+        c := p[i] as int
+        if c < ('0' as int) or c > ('9' as int):
+            ret 0
+        end
+    end
+    n := LeadingNumber(text)
+    ret n <= (65535 as i64) ? (n as int) : 0
+end
