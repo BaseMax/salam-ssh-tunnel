@@ -1,0 +1,98 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package admin
+
+import os
+import str
+import sync
+import os.process
+import os.desktop
+
+include "@/core/checks.salam"
+include "@/system/appdirs.salam"
+
+func run(args: Vector<str>, prompt: str): str:
+    ret process.RunElevated(desktop.ExecutablePath(), args, prompt, 180000)
+end
+
+func read_status(): str:
+    if not os.Exists(appdirs.StatusFile()):
+        ret ""
+    end
+    ret os.ReadFile(appdirs.StatusFile())
+end
+
+func wait_helper(old_beat: str): str:
+    deadline := sync.NowMs() + (15000 as i64)
+    until sync.NowMs() < deadline:
+        text := read_status()
+        if checks.ValueOf(text, "beat") != old_beat:
+            reported := checks.ValueOf(text, "state")
+            if reported == "up":
+                ret ""
+            end
+            if reported == "error":
+                ret checks.ValueOf(text, "message")
+            end
+        end
+        sync.SleepMs(200)
+    end
+    ret "the tunnel helper did not start"
+end
+
+pub func ReadStatus(): str:
+    ret read_status()
+end
+
+pub func HelperRunning(): bool:
+    text := ReadStatus()
+    pid := checks.LeadingNumber(checks.ValueOf(text, "pid"))
+    ret checks.ValueOf(text, "state") == "up" and process.Alive(pid as int)
+end
+
+pub func StartHelper(ip: str, socks_port: int, upstream: str, use_relay: bool): str:
+    _r := os.Remove(appdirs.StopFile())
+    old_beat := checks.ValueOf(ReadStatus(), "beat")
+    mut args := Vector {} as Vector<str>
+    args.Push("--helper")
+    args.Push(ip)
+    args.Push(str.FromInt(socks_port as i64))
+    args.Push(str.FromInt(os.Pid() as i64))
+    args.Push(appdirs.StopFile())
+    args.Push(upstream)
+    args.Push(use_relay ? "1" : "0")
+    args.Push(appdirs.RelayFile())
+    failed := run(args, "Salam Tunnel needs permission to route this Mac through your server.")
+    if failed.Len() > 0:
+        ret failed
+    end
+    ret wait_helper(old_beat)
+end
+
+pub func StopHelper():
+    _w := os.WriteFile(appdirs.StopFile(), "stop\n")
+    deadline := sync.NowMs() + (8000 as i64)
+    until sync.NowMs() < deadline and HelperRunning():
+        sync.SleepMs(200)
+    end
+end
+
+pub func Repair(): str:
+    mut args := Vector {} as Vector<str>
+    args.Push("--repair")
+    failed := run(args, "Salam Tunnel needs permission to restore your DNS settings.")
+    deadline := sync.NowMs() + (8000 as i64)
+    until sync.NowMs() < deadline and failed.Len() == 0 and os.Exists(appdirs.DnsBackupFile()):
+        sync.SleepMs(200)
+    end
+    ret failed
+end
