@@ -1,0 +1,81 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package state
+
+import sync
+import gui.ui
+
+pub const IDLE := 0
+pub const SIGNING_IN := 1
+pub const ASKING_ADMIN := 2
+pub const UP := 3
+pub const RECONNECTING := 4
+pub const CLOSING := 5
+
+mut _lock := sync.NewMutex()
+mut _shared := Snapshot {}
+mut _want_stop := false
+
+pub struct Snapshot:
+    pub phase: int = 0
+    pub message: str = ""
+    pub exit_ip: str = ""
+    pub dns_server: str = ""
+    pub udp_state: str = ""
+    pub udp_note: str = ""
+    pub since: i64 = 0 as i64
+    pub up: i64 = 0 as i64
+    pub down: i64 = 0 as i64
+    pub active: i64 = 0 as i64
+    pub dns: i64 = 0 as i64
+    pub broken: bool = false
+end
+
+pub func Current(): Snapshot:
+    sync.Lock(_lock)
+    copy := _shared
+    sync.Unlock(_lock)
+    ret copy
+end
+
+pub func Publish(s: Snapshot):
+    sync.Lock(_lock)
+    _shared = s
+    sync.Unlock(_lock)
+    ui.Invalidate()
+end
+
+pub func SetPhase(phase: int, message: str):
+    mut s := Current()
+    s.phase = phase
+    s.message = message
+    Publish(s)
+end
+
+pub func RequestStop():
+    sync.Lock(_lock)
+    _want_stop = true
+    sync.Unlock(_lock)
+end
+
+pub func ClearStop():
+    sync.Lock(_lock)
+    _want_stop = false
+    sync.Unlock(_lock)
+end
+
+pub func StopWanted(): bool:
+    sync.Lock(_lock)
+    w := _want_stop
+    sync.Unlock(_lock)
+    ret w
+end
