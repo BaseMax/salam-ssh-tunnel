@@ -1,0 +1,24 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+pub component RepairButton(pressed: func ()):
+    button:
+        id = "repair"
+        padding = 9
+        radius = 10
+        font size = 13
+        color = "light dark(#101828, #f2f4f7)"
+        background = "light dark(#ffffff, #181b21)"
+        border = 1, "solid", "light dark(#d0d5dd, #333a45)"
+        click = (): pressed() end
+        content = "Restore network settings"
+    end
+end
