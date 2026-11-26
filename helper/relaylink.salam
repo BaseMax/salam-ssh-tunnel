@@ -1,0 +1,43 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package relaylink
+
+import os
+import str
+import net.socks
+import net.udprelay
+
+include "@/core/checks.salam"
+
+mut _socks_port := 0
+mut _file := ""
+
+func setting(line: int): str:
+    parts := str.Split(os.ReadFile(_file), "\n")
+    ret parts.Len() > line ? parts[line].Trim() : ""
+end
+
+func dial(): i64:
+    port := checks.PortNumber(setting(1))
+    if port == 0:
+        ret -1
+    end
+    mut client := socks.NewClient("127.0.0.1", _socks_port)
+    client.timeout_ms = 20000
+    ret socks.DialConn(client, "127.0.0.1", port).fd
+end
+
+pub func Open(socks_port: int, file: str): udprelay.Client:
+    _socks_port = socks_port
+    _file = file
+    ret udprelay.NewSocketClient((): ret dial() end, setting(0))
+end
