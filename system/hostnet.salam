@@ -1,0 +1,67 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package hostnet
+
+include "@/system/tool.salam"
+include "@/system/backup.salam"
+include "@/system/macnet.salam"
+include "@/system/linuxnet.salam"
+
+pub func TakeOverDns(server: str): bool:
+    if SALAM_OS_MAC:
+        ret macnet.TakeOverDns(server)
+    else SALAM_OS_LINUX:
+        ret linuxnet.TakeOverDns(server)
+    else:
+        ret server.Len() > 0
+    end
+end
+
+pub func RestoreDns():
+    if not backup.Exists():
+        ret
+    end
+    if SALAM_OS_MAC:
+        macnet.RestoreDns()
+    else SALAM_OS_LINUX:
+        linuxnet.RestoreDns()
+    end
+end
+
+pub func DropRoute(ip: str):
+    if SALAM_OS_MAC:
+        macnet.DropRoute(ip)
+    else:
+        _kept := ip.Len()
+    end
+end
+
+pub func KeepServerRoute(ip: str):
+    if SALAM_OS_MAC:
+        macnet.KeepRoute(ip)
+    else SALAM_OS_LINUX:
+        linuxnet.KeepRoute(ip)
+    else:
+        _kept := ip.Len()
+    end
+end
+
+pub func StopOrphans(pattern: str):
+    if SALAM_OS_WINDOWS:
+        _kept := pattern.Len()
+    else:
+        mut args := Vector {} as Vector<str>
+        args.Push("-f")
+        args.Push(pattern)
+        _r := tool.RunArgs("/usr/bin/pkill", args)
+    end
+end
