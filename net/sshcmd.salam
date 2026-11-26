@@ -1,14 +1,12 @@
 /*
- * Salam Programming Language (2018-2026)
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
  *
- *   +-------------------+
- *   |     S A L A M     |
- *   +-------------------+
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
  *
- * Designed by Seyyed Ali Mohammadiyeh and the Salam Team
- *
- * Repository: https://github.com/SalamLang/Salam
- *
+ * Licensed under GPL-3.0
  */
 
 package sshcmd
@@ -17,13 +15,14 @@ import str
 import os.process
 import os.desktop
 
-include "profile.salam"
-include "host.salam"
+include "@/core/profile.salam"
+include "@/system/appdirs.salam"
+include "@/system/openssh.salam"
 
 pub func Base(pr: profile.Profile): process.Command:
-    mut cmd := process.NewCommand(host.SshPath())
+    mut cmd := process.NewCommand(openssh.Path())
     cmd.Arg("-F")
-    cmd.Arg(host.NullFile())
+    cmd.Arg(openssh.NullFile())
     cmd.Arg("-T")
     cmd.Arg("-p")
     cmd.Arg(pr.port)
@@ -32,7 +31,7 @@ pub func Base(pr: profile.Profile): process.Command:
     mut options := Vector {} as Vector<str>
     options.Push("HostKeyAlias=" + pr.host)
     options.Push(
-        "UserKnownHostsFile=\"" + str.Replace(profile.KnownHostsPath(), "\\", "/") + "\""
+        "UserKnownHostsFile=\"" + str.Replace(appdirs.KnownHostsFile(), "\\", "/") + "\""
     )
     options.Push("StrictHostKeyChecking=accept-new")
     options.Push("ConnectTimeout=20")
