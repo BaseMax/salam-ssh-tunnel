@@ -126,6 +126,9 @@ jobs:
         with:
           name: relays
           path: relays
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-mingw-w64-x86-64
       - run: sh tools/setup-salam.sh "$RUNNER_TEMP/salam" linux-x86_64
       - run: SALAM_RELAYS="$PWD/relays" sh build.sh windows "$PWD/stage/Salam Tunnel"
       - run: |
