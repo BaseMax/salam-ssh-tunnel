@@ -1,0 +1,40 @@
+/*
+ * Salam Tunnel
+ * Copyright (c) 2026 Seyyed Ali Mohammadiyeh (Max Base)
+ * https://github.com/BaseMax/salam-ssh-tunnel
+ *
+ * Powered by the Salam programming language
+ * https://github.com/SalamLang/Salam
+ *
+ * Licensed under GPL-3.0
+ */
+
+package backup
+
+import os
+import fs
+
+include "@/system/appdirs.salam"
+
+pub func Exists(): bool:
+    ret os.Exists(appdirs.DnsBackupFile())
+end
+
+pub func Keep(text: str): bool:
+    if Exists():
+        ret true
+    end
+    if text.Len() == 0 or os.WriteFile(appdirs.DnsBackupFile(), text) < 0:
+        ret false
+    end
+    _c := fs.Chmod(appdirs.DnsBackupFile(), 420)
+    ret true
+end
+
+pub func Read(): str:
+    ret os.ReadFile(appdirs.DnsBackupFile())
+end
+
+pub func Discard():
+    _r := os.Remove(appdirs.DnsBackupFile())
+end
